@@ -222,7 +222,8 @@ class VtypeRename(implicit p: Parameters) extends VectorBaseModule with HasCircu
     res.robEnqueued := false.B
     res.robIdx := in.robIdx
     when(in.ctrl.fuOpType === CSROpType.vsetivli) {
-      res.vill := in.ctrl.imm(7, 5) === 4.U || in.ctrl.imm(10).asBool
+      res.vill := in.ctrl.imm(7, 5) === 4.U || in.ctrl.imm(10).asBool || (in.ctrl.imm(7, 5) === 7.U && in.ctrl.imm(10, 8) > 2.U) || (in.ctrl.imm(7, 5) === 6.U && in.ctrl.imm(10, 8) > 1.U) || (in.ctrl.imm(7, 5) === 5.U && in.ctrl.imm(10, 8) > 0.U)
+      res.info.vill := res.vill
       res.info.vma := Mux(res.vill, 0.U, in.ctrl.imm(12))
       res.info.vta := Mux(res.vill, 0.U, in.ctrl.imm(11))
       res.info.vsew := Mux(res.vill, 0.U, in.ctrl.imm(10, 8))
@@ -235,7 +236,8 @@ class VtypeRename(implicit p: Parameters) extends VectorBaseModule with HasCircu
       }
       res.writebacked := true.B
     }.elsewhen(in.ctrl.fuOpType === CSROpType.vsetvli && in.ctrl.lsrc(0) === 0.U && in.ctrl.ldest =/= 0.U){
-      res.vill := in.ctrl.imm(2, 0) === 4.U || in.ctrl.imm(5).asBool
+      res.vill := in.ctrl.imm(2, 0) === 4.U || in.ctrl.imm(5).asBool || (in.ctrl.imm(2, 0) === 7.U && in.ctrl.imm(5, 3) > 2.U) || (in.ctrl.imm(2, 0) === 6.U && in.ctrl.imm(5, 3) > 1.U) || (in.ctrl.imm(2, 0) === 5.U && in.ctrl.imm(5, 3) > 0.U)
+      res.info.vill := res.vill
       res.info.vma := Mux(res.vill, 0.U, in.ctrl.imm(7))
       res.info.vta := Mux(res.vill, 0.U, in.ctrl.imm(6))
       res.info.vsew := Mux(res.vill, 0.U, in.ctrl.imm(5, 3))
