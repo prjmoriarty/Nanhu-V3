@@ -467,14 +467,16 @@ class CtrlBlockImp(outer: CtrlBlock)(implicit p: Parameters) extends LazyModuleI
 
   io.perfInfo.ctrlInfo.robFull := RegNext(rob.io.robFull)
   io.perfInfo.ctrlInfo.intdqFull := RegNext(intDq.io.dqFull)
-  io.perfInfo.ctrlInfo.fpdqFull := RegNext(fpDq.io.dqFull)
+//  io.perfInfo.ctrlInfo.fpdqFull := RegNext(fpDq.io.dqFull)
+  io.perfInfo.ctrlInfo.fpdqFull := true.B
   io.perfInfo.ctrlInfo.lsdqFull := RegNext(lsDq.io.dqFull)
 
   private val pfevent = Module(new PFEvent)
   pfevent.io.distribute_csr := RegNext(io.csrCtrl.distribute_csr)
   private val csrevents = pfevent.io.hpmevent.slice(8,16)
 
-  private val perfFromUnits = Seq(decode, rename, dispatch, intDq, fpDq, lsDq, rob).flatMap(_.getPerfEvents)
+//  private val perfFromUnits = Seq(decode, rename, dispatch, intDq, fpDq, lsDq, rob).flatMap(_.getPerfEvents)
+  private val perfFromUnits = Seq(decode, rename, dispatch, intDq, lsDq, rob).flatMap(_.getPerfEvents)
   private val perfFromIO    = Seq()
   private val perfBlock     = Seq()
   // let index = 0 be no event
