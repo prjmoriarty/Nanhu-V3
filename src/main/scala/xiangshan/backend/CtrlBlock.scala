@@ -146,9 +146,9 @@ class CtrlBlockImp(outer: CtrlBlock)(implicit p: Parameters) extends LazyModuleI
   private val memDispatch2Rs = Module(new MemDispatch2Rs)
 
   //DispatchQueue
-  private val intDq = Module(new DispatchQueue(RenameWidth * 4, RenameWidth, intDispatch._2.bankNum))
-  private val fpDq = Module(new DispatchQueue(RenameWidth * 4, RenameWidth, fpDispatch._2.bankNum))
-  private val lsDq = Module(new DispatchQueue(RenameWidth * 4, RenameWidth, lsDispatch._2.bankNum))
+  private val intDq = Module(new DispatchQueue(RenameWidth * 2, RenameWidth, intDispatch._2.bankNum))
+//  private val fpDq = Module(new DispatchQueue(RenameWidth * 2, RenameWidth, fpDispatch._2.bankNum))
+  private val lsDq = Module(new DispatchQueue(RenameWidth * 2, RenameWidth, lsDispatch._2.bankNum))
 
   //ROB
   private val rob = outer.rob.module
@@ -371,18 +371,18 @@ class CtrlBlockImp(outer: CtrlBlock)(implicit p: Parameters) extends LazyModuleI
   intDq.io.enq.req := dispatch.io.toIntDq.req
   intDq.io.enq.needAlloc := dispatch.io.toIntDq.needAlloc
 //  dispatch.io.toFpDq <> fpDq.io.enq
-  fpDq.io.enq.req := dispatch.io.toFpDq.req
-  fpDq.io.enq.needAlloc := dispatch.io.toFpDq.needAlloc
+//  fpDq.io.enq.req := dispatch.io.toFpDq.req
+//  fpDq.io.enq.needAlloc := dispatch.io.toFpDq.needAlloc
 //  dispatch.io.toLsDq <> lsDq.io.enq
   lsDq.io.enq.req := dispatch.io.toLsDq.req
   lsDq.io.enq.needAlloc := dispatch.io.toLsDq.needAlloc
   for (i <- 1 until DecodeWidth) {
     dispatch.io.toIntDq.canAccept(i) := intDq.io.enq.canAccept_dup(i-1)
-    dispatch.io.toFpDq.canAccept(i) := fpDq.io.enq.canAccept_dup(i-1)
+//    dispatch.io.toFpDq.canAccept(i) := fpDq.io.enq.canAccept_dup(i-1)
     dispatch.io.toLsDq.canAccept(i) := lsDq.io.enq.canAccept_dup(i-1)
   }
   dispatch.io.toIntDq.canAccept(0) := intDq.io.enq.canAccept
-  dispatch.io.toFpDq.canAccept(0) := fpDq.io.enq.canAccept
+//  dispatch.io.toFpDq.canAccept(0) := fpDq.io.enq.canAccept
   dispatch.io.toLsDq.canAccept(0) := lsDq.io.enq.canAccept
   dispatch.io.allocPregs <> io.allocPregs
   dispatch.io.singleStep := RegNext(io.csrCtrl.singlestep)
@@ -395,14 +395,21 @@ class CtrlBlockImp(outer: CtrlBlock)(implicit p: Parameters) extends LazyModuleI
   private val redirectDelay_dup_3 = Pipe(io.redirectIn)
   private val redirectDelay_dup_4 = Pipe(io.redirectIn)
   intDq.io.redirect := redirectDelay_dup_0
-  fpDq.io.redirect := redirectDelay_dup_0
+//  fpDq.io.redirect := redirectDelay_dup_0
   lsDq.io.redirect := redirectDelay_dup_0
   intDq.io.redirect_dup := redirectDelay_dup_1
-  fpDq.io.redirect_dup := redirectDelay_dup_2
+//  fpDq.io.redirect_dup := redirectDelay_dup_2
   lsDq.io.redirect_dup := redirectDelay_dup_3
 
   intDeq <> intDq.io.deq
-  fpDeq <> fpDq.io.deq
+//  fpDeq <> fpDq.io.deq
+  fpDeq.zip(dispatch.io.toFpDq.req).foreach{
+    case (toExu, fromdisp) => {
+      toExu.valid := fromdisp.valid
+      toExu.bits := fromdisp.bits
+    }
+  }
+  dispatch.io.toFpDq.canAccept.map(rdy => rdy := fpDeq.map(_.ready).reduce(_ && _))
 
   //mem and vmem dispatch merge
   memDqArb.io.memIn <> lsDq.io.deq
