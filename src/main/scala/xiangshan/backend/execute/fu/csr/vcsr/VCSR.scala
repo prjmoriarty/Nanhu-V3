@@ -49,7 +49,6 @@ class VtypeStruct(implicit p: Parameters) extends XSBundle {
   val vta       = Bool()
   val vsew      = UInt(3.W)
   val vlmul     = UInt(3.W)
-  val vlmax     = UInt(8.W)
   require(this.getWidth == XLEN)
 }
 
