@@ -49,6 +49,7 @@ class VtypeStruct(implicit p: Parameters) extends XSBundle {
   val vta       = Bool()
   val vsew      = UInt(3.W)
   val vlmul     = UInt(3.W)
+  val vlmax     = UInt(8.W)
   require(this.getWidth == XLEN)
 }
 
@@ -58,6 +59,7 @@ class VSetFu(implicit p: Parameters) extends XSModule with HasXSParameter {
     val vtypeNew      = Output(UInt(XLEN.W))
     val vlNew         = Output(UInt(XLEN.W))
     val wbToCtrlValid = Output(Bool())
+    val vsetvliError = Output(Bool())
     val vlOld         = Input(UInt(log2Ceil(VLEN + 1).W))
   })
   /** ********************************************************************************************
@@ -143,4 +145,5 @@ class VSetFu(implicit p: Parameters) extends XSModule with HasXSParameter {
   io.wbToCtrlValid := io.in.valid && wbToCtrlCond
   io.vtypeNew := Cat(vtype.vill, vtype.vma, vtype.vta, vtype.vsew, vtype.vlmul)
   io.vlNew := vl
+  io.vsetvliError := Mux(type2 && !vtype.vill, vl =/= vlmax ,false.B)
 }

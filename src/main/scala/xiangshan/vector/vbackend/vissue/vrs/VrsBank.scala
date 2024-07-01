@@ -27,7 +27,7 @@ class VrsBank(entryNum:Int, issueWidth:Int, wakeupWidth:Int, loadUnitNum:Int)(im
   private val payloadArray = Module(new PayloadArray(new MicroOp, entryNum, issueWidth, "VrsPayloadArray"))
 
   private def EnqToEntry(in: MicroOp): VrsStatusArrayEntry = {
-    val dontCareDest = in.vCsrInfo.vta(0) && Mux(in.vctrl.vm, in.vCsrInfo.vma(0), true.B)
+    val dontCareDest = Mux(in.vCsrInfo.vta(0), !in.isTail, true.B) && Mux(in.vctrl.vm, in.vCsrInfo.vma(0), true.B)
     val enqEntry = Wire(new VrsStatusArrayEntry)
     enqEntry.psrc.take(2).zip(in.psrc.take(2)).foreach(elm => elm._1 := elm._2)
     enqEntry.srcType.take(2).zip(in.ctrl.srcType.take(2)).foreach(elm => elm._1 := elm._2)

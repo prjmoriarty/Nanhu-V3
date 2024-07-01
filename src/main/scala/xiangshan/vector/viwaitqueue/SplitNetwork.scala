@@ -115,6 +115,7 @@ class SplitUop(splitNum:Int)(implicit p: Parameters) extends XSModule {
 
   private val ctrl = io.in.bits.ctrl
   private val vctrl = io.in.bits.vctrl
+  private val vtype = io.in.bits.vCsrInfo
 
   private def GenAddend(et:UInt, widenOrNarrow:Bool, idx:UInt):UInt = {
     val res = Wire(UInt(3.W))
@@ -162,6 +163,9 @@ class SplitUop(splitNum:Int)(implicit p: Parameters) extends XSModule {
       }.otherwise {
         o.bits.canRename := true.B
       }
+      val elementNum = VLEN.U >> vtype.vsew
+      val currentElement = elementNum.asUInt << currentnum
+      o.bits.isTail := currentElement.asUInt >= vtype.vl
       o.bits.ctrl.ldest := ctrl.ldest + vdAddend
       o.bits.ctrl.lsrc(0) := ctrl.lsrc(0) + vs1Addend
       o.bits.ctrl.lsrc(1) := ctrl.lsrc(1) + vs2Addend

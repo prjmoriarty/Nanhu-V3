@@ -176,7 +176,7 @@ class CtrlSignals(implicit p: Parameters) extends XSBundle {
   }
 
   def isVset: Bool = (fuOpType===CSROpType.vsetivli || fuOpType===CSROpType.vsetvli || fuOpType===CSROpType.vsetvl)
-
+  def isVsetvli: Bool = fuOpType===CSROpType.vsetvli
 }
 
 class CfCtrl(implicit p: Parameters) extends XSBundle {
@@ -269,6 +269,7 @@ class Redirect(implicit p: Parameters) extends XSBundle {
   val isXRet = Bool()
   val isFlushPipe = Bool()
   val isPreWalk = Bool()
+  val isVsetError = Bool()
 
   val stFtqIdx = new FtqPtr // for load violation predict
   val stFtqOffset = UInt(log2Up(PredictWidth).W)

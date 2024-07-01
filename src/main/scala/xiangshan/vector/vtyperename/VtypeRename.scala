@@ -236,7 +236,7 @@ class VtypeRename(implicit p: Parameters) extends VectorBaseModule with HasCircu
         res.info.vl := Mux(res.vill, 0.U, in.ctrl.imm(4, 0))
       }
       res.writebacked := true.B
-    }.elsewhen(in.ctrl.fuOpType === CSROpType.vsetvli && in.ctrl.lsrc(0) === 0.U && in.ctrl.ldest =/= 0.U){
+    }.elsewhen(in.ctrl.fuOpType === CSROpType.vsetvli){
       res.vill := in.ctrl.imm(2, 0) === 4.U || in.ctrl.imm(5).asBool || (in.ctrl.imm(2, 0) === 7.U && in.ctrl.imm(5, 3) > 2.U) || (in.ctrl.imm(2, 0) === 6.U && in.ctrl.imm(5, 3) > 1.U) || (in.ctrl.imm(2, 0) === 5.U && in.ctrl.imm(5, 3) > 0.U)
       res.info.vill := res.vill
       res.vill := in.ctrl.imm(2, 0) === 4.U || in.ctrl.imm(5).asBool

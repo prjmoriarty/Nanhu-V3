@@ -40,7 +40,7 @@ class VprsStatusArrayEntryUpdateNetwork(sWkpWidth:Int, vWkpWidth:Int)(implicit p
 
   private val entryNext = WireInit(io.entry)
   when(io.enq.valid){
-    val agnostic = io.enq.bits.vCsrInfo.vta(0) && Mux(io.enq.bits.vctrl.vm, io.enq.bits.vCsrInfo.vma(0), true.B)
+    val agnostic = Mux(io.enq.bits.vCsrInfo.vta(0), !io.enq.bits.isTail, true.B) && Mux(io.enq.bits.vctrl.vm, io.enq.bits.vCsrInfo.vma(0), true.B)
     val isSlideUp = io.enq.bits.vctrl.funct6 === "b001110".U
     val dontCareDest = agnostic && !isSlideUp
     when(io.enqIsMerge){
