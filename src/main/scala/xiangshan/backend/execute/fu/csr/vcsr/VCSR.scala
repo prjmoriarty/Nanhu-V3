@@ -144,5 +144,5 @@ class VSetFu(implicit p: Parameters) extends XSModule with HasXSParameter {
   io.wbToCtrlValid := io.in.valid && wbToCtrlCond
   io.vtypeNew := Cat(vtype.vill, vtype.vma, vtype.vta, vtype.vsew, vtype.vlmul)
   io.vlNew := vl
-  io.vsetvliError := Mux(type2 && !vtype.vill, vl =/= vlmax ,false.B)
+  io.vsetvliError := Mux(opType === CSROpType.vsetvli && !vtype.vill, vl =/= vlmax ,false.B)
 }
