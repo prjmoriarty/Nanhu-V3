@@ -216,7 +216,7 @@ class SplitNetwork(splitNum:Int)(implicit p: Parameters) extends XSModule{
     currentWires := currentDefaultVal
   }
 
-  io.in.ready := remainWire === leaving
+  io.in.ready := remain === leaving
 
   private val in_v = Wire(Valid(new MicroOp))
   in_v.valid := io.in.valid
