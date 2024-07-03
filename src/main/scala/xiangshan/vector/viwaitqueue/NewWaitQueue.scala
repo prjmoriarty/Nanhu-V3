@@ -165,14 +165,14 @@ class NewWaitQueue(implicit p: Parameters) extends VectorBaseModule with HasCirc
 //  splitDriver.io.out(0).ready := splitNetwork.io.in.ready
 //  splitNetwork.io.vstart := io.vstart
 
-  when(directlyWb && deqUop.uop.vctrl.isLs) {
-    splitIn.uopNum := 1.U
-  }
-
   splitNetwork.io.redirect := io.redirect
   splitNetwork.io.in.valid := hasValid && uopRdy && Mux(deqUop.uop.vctrl.isLs, true.B, !directlyWb)
   splitNetwork.io.in.bits := splitIn
   splitNetwork.io.vstart := io.vstart
+
+  when(directlyWb && deqUop.uop.vctrl.isLs) {
+    splitNetwork.io.in.bits.uopNum := 1.U
+  }
 
   private val deqValid = hasValid && uopRdy && (splitNetwork.io.in.ready || (directlyWb && !deqUop.uop.vctrl.isLs))
   private val actualDeq = deqValid && !splitNetwork.io.in.bits.robIdx.needFlush(io.redirect)
