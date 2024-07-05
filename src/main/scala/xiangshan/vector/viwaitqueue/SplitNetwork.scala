@@ -189,6 +189,7 @@ class SplitNetwork(splitNum:Int)(implicit p: Parameters) extends XSModule{
     val out = Vec(splitNum, Decoupled(new MicroOp))
     val vstart = Input(UInt(7.W))
     val redirect = Input(Valid(new Redirect))
+    val empty = Output(Bool())
   })
 
   private val remain = RegInit(0.U(log2Ceil(VLEN + 1).W))
@@ -216,7 +217,8 @@ class SplitNetwork(splitNum:Int)(implicit p: Parameters) extends XSModule{
     currentWires := currentDefaultVal
   }
 
-  io.in.ready := remain === leaving
+  io.in.ready := remainWire === leaving
+  io.empty := remain === leaving
 
   private val in_v = Wire(Valid(new MicroOp))
   in_v.valid := io.in.valid

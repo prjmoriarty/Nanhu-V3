@@ -54,6 +54,8 @@ class NewWaitQueue(implicit p: Parameters) extends VectorBaseModule with HasCirc
   private val mergePtr = mergePtrVec.head
   private val table = Module(new VIWaitQueueArray)
   private val splitNetwork = Module(new SplitNetwork(VIRenameWidth))
+  private val s_empty :: s_busy :: Nil = Enum(2)
+  private val splitState = RegInit(s_empty)
 
   private val validEntriesNum = distanceBetween(enqPtr, deqPtr)
   private val emptyEntriesNum = VIWaitQueueWidth.U - validEntriesNum
@@ -95,6 +97,12 @@ class NewWaitQueue(implicit p: Parameters) extends VectorBaseModule with HasCirc
     enqPtr := enqPtr - flushNum
   }.elsewhen(doEnq){
     enqPtr := enqPtr + enqNum
+  }
+
+  when(io.redirect.valid || splitNetwork.io.empty){
+    splitState := s_empty
+  }.otherwise{
+    splitState := s_busy
   }
 
   //MergeId Allocation Logics
@@ -174,25 +182,26 @@ class NewWaitQueue(implicit p: Parameters) extends VectorBaseModule with HasCirc
     splitNetwork.io.in.bits.uopNum := 1.U
   }
 
-  private val deqValid = hasValid && uopRdy && (splitNetwork.io.in.ready || (directlyWb && !deqUop.uop.vctrl.isLs))
+  private val deqValid = hasValid && uopRdy && (splitState === s_empty || (directlyWb && !deqUop.uop.vctrl.isLs))
+  private val deqptrCanmove = hasValid && uopRdy && (splitNetwork.io.in.ready || (directlyWb && !deqUop.uop.vctrl.isLs)) && !splitNetwork.io.in.bits.robIdx.needFlush(io.redirect)
   private val actualDeq = deqValid && !splitNetwork.io.in.bits.robIdx.needFlush(io.redirect)
-  private val actualStartSplit = splitNetwork.io.in.fire && !splitNetwork.io.in.bits.robIdx.needFlush(io.redirect)
-  when(actualDeq){
+  private val actualStartSplit = actualDeq && !splitNetwork.io.in.bits.robIdx.needFlush(io.redirect)
+  when(deqptrCanmove){
     deqPtr := deqPtr + 1.U
   }
 
-  private val orderLsOnGoing = RegEnable(deqUop.uop.vctrl.isLs && deqUop.uop.vctrl.ordered, actualStartSplit)
-  when(io.splitCtrl.allDone) {
-    orderLsOnGoing := false.B
-  }
-  private val allowNext = RegInit(true.B)
-  when(io.splitCtrl.allowNext | io.splitCtrl.allDone | actualStartSplit){
-    allowNext := true.B
-  }.elsewhen(splitNetwork.io.out.head.fire) {
-    allowNext := false.B
-  }
+  private val orderLsOnGoing = Mux(io.splitCtrl.allDone, false.B, deqUop.uop.vctrl.isLs && deqUop.uop.vctrl.ordered && actualStartSplit)
+  // when(io.splitCtrl.allDone) {
+  //   orderLsOnGoing := false.B
+  // }
+  private val allowNext = Mux(io.splitCtrl.allowNext | io.splitCtrl.allDone | actualStartSplit, true.B, Mux(splitState === s_empty, false.B, true.B))
+  // when(io.splitCtrl.allowNext | io.splitCtrl.allDone | actualStartSplit){
+  //   allowNext := true.B
+  // }.elsewhen(splitNetwork.io.out.head.fire) {
+  //   allowNext := false.B
+  // }
 
-  private val actualDeqNum = Mux(deqValid && !splitNetwork.io.in.bits.robIdx.needFlush(io.redirect), 1.U, 0.U)
+  private val actualDeqNum = Mux(deqptrCanmove && !splitNetwork.io.in.bits.robIdx.needFlush(io.redirect), 1.U, 0.U)
   private val actualEnqNum = Mux(doEnq && !io.redirect.valid, enqNum, 0.U)
   private val actualFlushNum = Mux(io.redirect.valid, flushNum, 0.U)
   emptyEntriesNumReg := (emptyEntriesNumReg - actualEnqNum) + (actualFlushNum +& actualDeqNum)
@@ -215,7 +224,7 @@ class NewWaitQueue(implicit p: Parameters) extends VectorBaseModule with HasCirc
   io.out <> splitPipe.io.out
 
   private val vmbInit = Wire(Valid(new MicroOp))
-  vmbInit.valid := deqValid && !splitNetwork.io.in.bits.robIdx.needFlush(io.redirect)
+  vmbInit.valid := deqptrCanmove && !splitNetwork.io.in.bits.robIdx.needFlush(io.redirect)
   vmbInit.bits := deqUop.uop
   vmbInit.bits.uopIdx := 0.U
   private val writebackOnce = deqUop.uop.vctrl.eewType(2) === EewType.scalar || deqUop.uop.vctrl.eewType(2) === EewType.dc || deqUop.uop.vctrl.eew(2) === EewVal.mask
