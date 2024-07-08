@@ -99,7 +99,7 @@ class NewWaitQueue(implicit p: Parameters) extends VectorBaseModule with HasCirc
     enqPtr := enqPtr + enqNum
   }
 
-  when(io.redirect.valid || splitNetwork.io.empty){
+  when(splitNetwork.io.in.bits.robIdx.needFlush(io.redirect) || splitNetwork.io.empty){
     splitState := s_empty
   }.otherwise{
     splitState := s_busy
@@ -184,8 +184,9 @@ class NewWaitQueue(implicit p: Parameters) extends VectorBaseModule with HasCirc
 
   private val deqValid = hasValid && uopRdy && (splitState === s_empty || (directlyWb && !deqUop.uop.vctrl.isLs))
   private val deqptrCanmove = hasValid && uopRdy && (splitNetwork.io.in.ready || (directlyWb && !deqUop.uop.vctrl.isLs)) && !splitNetwork.io.in.bits.robIdx.needFlush(io.redirect)
-  private val actualDeq = deqValid && !splitNetwork.io.in.bits.robIdx.needFlush(io.redirect)
-  private val actualStartSplit = actualDeq && !splitNetwork.io.in.bits.robIdx.needFlush(io.redirect)
+  //private val actualDeq = deqValid && !splitNetwork.io.in.bits.robIdx.needFlush(io.redirect)
+  private val actualStartSplit = deqValid && !splitNetwork.io.in.bits.robIdx.needFlush(io.redirect)
+  private val vmbValid = hasValid && uopRdy && (splitNetwork.io.in.ready || (directlyWb && !deqUop.uop.vctrl.isLs))
   when(deqptrCanmove){
     deqPtr := deqPtr + 1.U
   }
@@ -224,7 +225,7 @@ class NewWaitQueue(implicit p: Parameters) extends VectorBaseModule with HasCirc
   io.out <> splitPipe.io.out
 
   private val vmbInit = Wire(Valid(new MicroOp))
-  vmbInit.valid := deqptrCanmove && !splitNetwork.io.in.bits.robIdx.needFlush(io.redirect)
+  vmbInit.valid := (vmbValid || actualStartSplit) && !splitNetwork.io.in.bits.robIdx.needFlush(io.redirect)
   vmbInit.bits := deqUop.uop
   vmbInit.bits.uopIdx := 0.U
   private val writebackOnce = deqUop.uop.vctrl.eewType(2) === EewType.scalar || deqUop.uop.vctrl.eewType(2) === EewType.dc || deqUop.uop.vctrl.eew(2) === EewVal.mask
@@ -245,5 +246,5 @@ class NewWaitQueue(implicit p: Parameters) extends VectorBaseModule with HasCirc
     vmbInit.bits.cf.exceptionVec(illegalInstr) := true.B
   }
 
-  io.vmbInit := Pipe(vmbInit)
+  io.vmbInit := vmbInit
 }
